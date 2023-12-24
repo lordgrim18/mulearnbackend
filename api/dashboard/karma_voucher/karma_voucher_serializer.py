@@ -14,6 +14,7 @@ class VoucherLogCSVSerializer(serializers.ModelSerializer):
     created_by_id = serializers.CharField(required=True, allow_null=False)
     updated_by_id = serializers.CharField(required=True, allow_null=False)
     week = serializers.CharField(required=False, allow_null=True)
+    event_id = serializers.CharField(required=False, allow_null=True)
 
     class Meta:
         model = VoucherLog
@@ -30,7 +31,7 @@ class VoucherLogCSVSerializer(serializers.ModelSerializer):
             'updated_by_id',
             'created_at',
             'updated_at',
-            'event',
+            'event_id',
             'description'
         ]
 
@@ -55,7 +56,7 @@ class VoucherLogCSVSerializer(serializers.ModelSerializer):
         representation['karma'] = instance.karma
         representation['week'] = instance.week if instance.week else None
         representation['description'] = instance.description if instance.description else None
-        representation['event'] = instance.event if instance.event else None
+        representation['event'] = instance.event.name if instance.event else None
 
         return representation
 

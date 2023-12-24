@@ -239,7 +239,7 @@ class VoucherLog(models.Model):
     week = models.CharField(max_length=2, null=True)
     month = models.CharField(max_length=10)
     claimed = models.BooleanField()
-    event = models.CharField(max_length=50, null=True)
+    event = models.ForeignKey(Events, on_delete=models.CASCADE, null=True)
     description = models.CharField(max_length=2000, null=True)
     updated_by = models.ForeignKey(User, on_delete=models.SET(settings.SYSTEM_ADMIN_ID), db_column="updated_by",
                                    related_name="voucher_log_updated_by")

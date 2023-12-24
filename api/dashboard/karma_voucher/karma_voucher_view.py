@@ -12,7 +12,7 @@ from django.http import FileResponse
 from openpyxl import load_workbook
 from rest_framework.views import APIView
 
-from db.task import VoucherLog, TaskList
+from db.task import VoucherLog, TaskList, Events
 from db.user import User
 from utils.karma_voucher import generate_karma_voucher, generate_ordered_id
 from utils.permission import CustomizePermission, JWTUtils, role_required
@@ -52,24 +52,30 @@ class ImportVoucherLogAPI(APIView):
         success_rows = []
         users_to_fetch = set()
         tasks_to_fetch = set()
+        events_to_fetch = set()
+
         for row in excel_data[1:]:
             task_hashtag = row.get('hashtag')
             muid = row.get('muid')
+            event = row.get('event')
             users_to_fetch.add(muid)
             tasks_to_fetch.add(task_hashtag)
+            events_to_fetch.add(event)
         # Fetching users and tasks in bulk
         users = User.objects.filter(muid__in=users_to_fetch).values(
             'id', 'email', 'full_name', 'muid')
         tasks = TaskList.objects.filter(
             hashtag__in=tasks_to_fetch).values('id', 'hashtag')
+        events = Events.objects.filter(
+            name__in=events_to_fetch).values('id', 'name')
         user_dict = {
             user['muid']: (
                 user['id'], user['email'],
                 user['full_name']
             ) for user in users
         }
-
         task_dict = {task['hashtag']: task['id'] for task in tasks}
+        event_dict = {event['name']: event['id'] for event in events}
 
         count = 1
         for row in excel_data[1:]:
@@ -87,8 +93,12 @@ class ImportVoucherLogAPI(APIView):
             else:
                 user_id, email, full_name = user_info
                 task_id = task_dict.get(task_hashtag)
+                event_id = event_dict.get(event)
                 if task_id is None:
                     row['error'] = f"Invalid task hashtag: {task_hashtag}"
+                    error_rows.append(row)
+                elif event and not event_id:
+                    row['error'] = f"Invalid event: {event}"
                     error_rows.append(row)
                 elif karma == 0:
                     row['error'] = "Karma cannot be 0"
@@ -111,6 +121,7 @@ class ImportVoucherLogAPI(APIView):
                     row['updated_by_id'] = current_user
                     row['created_at'] = DateTimeUtils.get_current_utc_time()
                     row['updated_at'] = DateTimeUtils.get_current_utc_time()
+                    row["event_id"] = event_id or None
                     count += 1
                     valid_rows.append(row)
 
@@ -359,11 +370,13 @@ class VoucherBaseTemplateAPI(APIView):
         wb = load_workbook('./excel-templates/voucher_base_template.xlsx')
         ws = wb['Data Definitions']
         hashtags = TaskList.objects.all().values_list('hashtag', flat=True)
+        events = Events.objects.all().values_list('name', flat=True)
         data = {
             'hashtag': hashtags,
             'month': ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September',
                       'October', 'November', 'December'],
-            'week': ['W1', 'W2', 'W3', 'W4', 'W5']
+            'week': ['W1', 'W2', 'W3', 'W4', 'W5'],
+            'event': events
         }
         # Write data column-wise
         for col_num, (col_name, col_values) in enumerate(data.items(), start=1):
