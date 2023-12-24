@@ -276,6 +276,7 @@ class ImportTaskListCSV(APIView):
         levels_to_fetch = set()
         igs_to_fetch = set()
         orgs_to_fetch = set()
+        events_to_fetch = set()
 
         for row in excel_data[1:]:
             hashtag = row.get("hashtag")
@@ -309,12 +310,14 @@ class ImportTaskListCSV(APIView):
             task_type = row.get("type")
             ig = row.get("ig")
             org = row.get("org")
+            event = row.get("event")
 
             channels_to_fetch.add(channel)
             task_types_to_fetch.add(task_type)
             levels_to_fetch.add(level)
             igs_to_fetch.add(ig)
             orgs_to_fetch.add(org)
+            events_to_fetch.add(event)
 
         channels = Channel.objects.filter(
             name__in=channels_to_fetch
@@ -351,6 +354,13 @@ class ImportTaskListCSV(APIView):
             "code"
         )
 
+        events = Events.objects.filter(
+            name__in=events_to_fetch
+        ).values(
+            "id",
+            "name"
+        )
+
         channels_dict = {channel["name"]: channel["id"] for channel in channels}
         task_types_dict = {
             task_type["title"]: task_type["id"] for task_type in task_types
@@ -358,7 +368,7 @@ class ImportTaskListCSV(APIView):
         levels_dict = {level["name"]: level["id"] for level in levels}
         igs_dict = {ig["name"]: ig["id"] for ig in igs}
         orgs_dict = {org["code"]: org["id"] for org in orgs}
-        events = Events.get_all_values()
+        events_dict = {event["name"]: event["id"] for event in events}
 
         for row in excel_data[1:]:
             level = row.pop("level")
@@ -366,13 +376,14 @@ class ImportTaskListCSV(APIView):
             task_type = row.pop("type")
             ig = row.pop("ig")
             org = row.pop("org")
+            event = row.get("event")
 
             task_type_id = task_types_dict.get(task_type)
             channel_id = channels_dict.get(channel) if channel is not None else None
             level_id = levels_dict.get(level) if level is not None else None
             ig_id = igs_dict.get(ig) if ig is not None else None
             org_id = orgs_dict.get(org) if org is not None else None
-            event = row.get("event")
+            event_id = events_dict.get(event) if event is not None else None
 
             if channel and not channel_id:
                 row["error"] = f"Invalid channel: {channel}"
@@ -389,7 +400,7 @@ class ImportTaskListCSV(APIView):
             elif org and not org_id:
                 row["error"] = f"Invalid organization: {org}"
                 error_rows.append(row)
-            elif event is not None and event not in events:
+            elif event and not event_id:
                 row["error"] = f"Invalid event: {event}"
                 error_rows.append(row)
             else:
@@ -405,6 +416,7 @@ class ImportTaskListCSV(APIView):
                 row["level_id"] = level_id or None
                 row["ig_id"] = ig_id or None
                 row["org_id"] = org_id or None
+                row["event_id"] = event_id or None
                 valid_rows.append(row)
 
         task_list_serializer = TaskImportSerializer(data=valid_rows, many=True)
@@ -424,7 +436,7 @@ class ImportTaskListCSV(APIView):
                     'type': task_data.get('type_id', ''),
                     'ig': task_data.get('ig_id', ''),
                     'org': task_data.get('org_id', ''),
-                    'event': task_data.get('event', ''),
+                    'event': task_data.get('event_id', ''),
                 })
         else:
             error_rows.append(task_list_serializer.errors)
@@ -578,7 +590,7 @@ class TaskBaseTemplateAPI(APIView):
         task_types = TaskType.objects.all().values_list('title', flat=True)
         igs = InterestGroup.objects.all().values_list('name', flat=True)
         orgs = Organization.objects.all().values_list('code', flat=True)
-        events = Events.get_all_values()
+        events = Events.objects.all().values_list('name', flat=True)
 
         data = {
             'level': levels,

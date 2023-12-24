@@ -98,6 +98,18 @@ class TaskType(models.Model):
         managed = False
         db_table = "task_type"
 
+class Events(models.Model):
+    id          = models.CharField(primary_key=True, max_length=36, default=uuid.uuid4)
+    name        = models.CharField(max_length=75)
+    description = models.CharField(max_length=200, null=True)
+    updated_by  = models.ForeignKey(User, on_delete=models.SET(settings.SYSTEM_ADMIN_ID), db_column="updated_by", related_name="event_updated_by")
+    updated_at  = models.DateTimeField(auto_now=True)
+    created_by  = models.ForeignKey(User, on_delete=models.SET(settings.SYSTEM_ADMIN_ID), db_column="created_by", related_name="event_created_by")
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = "events"
 
 class TaskList(models.Model):
     id = models.CharField(primary_key=True, max_length=36, default=uuid.uuid4)
@@ -111,7 +123,7 @@ class TaskList(models.Model):
     org = models.ForeignKey(Organization, on_delete=models.CASCADE, null=True)
     level = models.ForeignKey(Level, on_delete=models.CASCADE, null=True)
     ig = models.ForeignKey(InterestGroup, on_delete=models.CASCADE, null=True, related_name="task_list_ig")
-    event = models.CharField(max_length=50, null=True)
+    event = models.ForeignKey(Events, on_delete=models.CASCADE, null=True)
     active = models.BooleanField(default=True)
     variable_karma = models.BooleanField(default=False)
     usage_count = models.IntegerField(default=1)
@@ -239,17 +251,3 @@ class VoucherLog(models.Model):
     class Meta:
         managed = False
         db_table = "voucher_log"
-
-
-class Events(models.Model):
-    id          = models.CharField(primary_key=True, max_length=36, default=uuid.uuid4)
-    name        = models.CharField(max_length=75)
-    description = models.CharField(max_length=200, null=True)
-    updated_by  = models.ForeignKey(User, on_delete=models.SET(settings.SYSTEM_ADMIN_ID), db_column="updated_by", related_name="event_updated_by")
-    updated_at  = models.DateTimeField(auto_now=True)
-    created_by  = models.ForeignKey(User, on_delete=models.SET(settings.SYSTEM_ADMIN_ID), db_column="created_by", related_name="event_created_by")
-    created_at  = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        managed = False
-        db_table = "events"

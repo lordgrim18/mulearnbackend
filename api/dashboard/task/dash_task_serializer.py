@@ -86,6 +86,7 @@ class TaskImportSerializer(serializers.ModelSerializer):
     org_id = serializers.CharField(required=False, allow_null=True)
     level_id = serializers.CharField(required=False, allow_null=True)
     ig_id = serializers.CharField(required=False, allow_null=True)
+    event_id = serializers.CharField(required=False, allow_null=True)
     usage_count = serializers.IntegerField(allow_null=True)
     variable_karma = serializers.BooleanField(allow_null=True)
 
@@ -101,7 +102,7 @@ class TaskImportSerializer(serializers.ModelSerializer):
             "channel_id",
             "type_id",
             "org_id",
-            "event",
+            "event_id",
             "level_id",
             "ig_id",
             "active",
@@ -121,6 +122,7 @@ class TaskImportSerializer(serializers.ModelSerializer):
         representation['org_id'] = instance.org.code if instance.org else None
         representation['level_id'] = instance.level.name if instance.level else None
         representation['ig_id'] = instance.ig.name if instance.ig else None
+        representation['event_id'] = instance.event.name if instance.event else None
 
         return representation
 
