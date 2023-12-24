@@ -3,10 +3,10 @@ import uuid
 from rest_framework.views import APIView
 
 from db.organization import Organization
-from db.task import Channel, InterestGroup, Level, TaskList, TaskType
+from db.task import Channel, InterestGroup, Level, TaskList, TaskType, Events
 from utils.permission import CustomizePermission, JWTUtils, role_required
 from utils.response import CustomResponse
-from utils.types import Events, RoleType
+from utils.types import RoleType
 from utils.utils import CommonUtils, DateTimeUtils, ImportCSV
 from .dash_task_serializer import (
     TaskImportSerializer,
@@ -535,6 +535,20 @@ class TaskTypesDropDownAPI(APIView):
         ).get_success_response()
 
 
+# class EventDropDownApi(APIView):
+#     authentication_classes = [CustomizePermission]
+
+#     @role_required(
+#         [
+#             RoleType.ADMIN.value,
+#         ]
+#     )
+#     def get(self, request):
+#         events = Events.get_all_values()
+#         return CustomResponse(
+#             response=events
+#         ).get_success_response()
+    
 class EventDropDownApi(APIView):
     authentication_classes = [CustomizePermission]
 
@@ -544,10 +558,13 @@ class EventDropDownApi(APIView):
         ]
     )
     def get(self, request):
-        events = Events.get_all_values()
+        events = Events.objects.values(
+            "id",
+            "name",
+        )
         return CustomResponse(
             response=events
-        ).get_success_response()
+            ).get_success_response()
 
 
 class TaskBaseTemplateAPI(APIView):
